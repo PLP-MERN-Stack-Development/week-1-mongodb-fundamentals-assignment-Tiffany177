@@ -44,4 +44,92 @@ Your work will be automatically submitted when you push to your GitHub Classroom
 
 - [MongoDB Documentation](https://docs.mongodb.com/)
 - [MongoDB University](https://university.mongodb.com/)
-- [MongoDB Node.js Driver](https://mongodb.github.io/node-mongodb-native/) 
+- [MongoDB Node.js Driver](https://mongodb.github.io/node-mongodb-native/)
+
+// app.js
+
+const mongoose = require("mongoose");
+
+// lol hope this connects 🤞
+mongoose.connect("mongodb://localhost:27017/myDatabase", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log("Connected ✅");
+}).catch((err) => {
+  console.log("uh oh DB error:", err);
+});
+
+// User schema (I hope I got this right)
+const userSchema = new mongoose.Schema({
+  name: String,
+  age: Number,
+  email: String
+});
+
+userSchema.index({ email: 1 }); // just for performance? idk
+
+const User = mongoose.model("User", userSchema);
+
+const run = async () => {
+  console.log("let's gooo");
+
+  // CREATE
+  const user1 = new User({
+    name: "Ann",
+    age: 22,
+    email: "ann@email.com"
+  });
+  await user1.save();
+  console.log("created user:", user1);
+
+  // READ
+  const all = await User.find();
+  console.log("all users?", all);
+
+  // UPDATE
+  const first = await User.findOne();
+  if (first) {
+    await User.findByIdAndUpdate(first._id, { age: 28 });
+    console.log("updated user age (i think)");
+  }
+
+  // DELETE
+  const someone = await User.findOne();
+  if (someone) {
+    await User.findByIdAndDelete(someone._id);
+    console.log("deleted someone idk who");
+  }
+
+  // FILTER
+  const filtered = await User.find({ age: { $gt: 20 } });
+  console.log("users older than 20:", filtered);
+
+  // PROJECTION
+  const names = await User.find({}, { name: 1, email: 1, _id: 0 });
+  console.log("just name + email pls", names);
+
+  // SORT
+  const sorted = await User.find().sort({ age: -1 });
+  console.log("oldest first I think?", sorted);
+
+  // AGGREGATION
+  const stats = await User.aggregate([
+    { $match: { age: { $gt: 20 } } },
+    { $group: { _id: null, total: { $sum: 1 }, avg: { $avg: "$age" } } }
+  ]);
+  console.log("stats time 📊:", stats);
+
+  // INDEX
+  try {
+    await User.collection.createIndex({ email: 1 });
+    console.log("indexed email just in case");
+  } catch (e) {
+    console.log("index error idk", e);
+  }
+
+  mongoose.disconnect();
+  console.log("done 🚪");
+};
+
+run();
